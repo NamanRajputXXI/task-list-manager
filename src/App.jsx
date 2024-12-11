@@ -1,11 +1,13 @@
+import React from "react";
+import TaskTable from "./components/TaskTable";
 
-import './App.css'
 
-function App() {
-
+const App = () => {
   return (
-    <h1 className="text-4xl">Hello</h1>
-  )
-}
+    <div>
+      <TaskTable />
+    </div>
+  );
+};
 
-export default App
+export default App;
