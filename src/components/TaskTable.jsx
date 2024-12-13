@@ -1,128 +1,283 @@
-import React, { useState, useEffect } from "react";
-import { ReactTabulator } from "react-tabulator";
-import "react-tabulator/lib/styles.css";
-import "react-tabulator/css/bootstrap/tabulator_bootstrap.min.css";
+
+      
+
+
+import React, { useState, useMemo, useEffect } from "react";
+import { useReactTable, getCoreRowModel, getFilteredRowModel, getPaginationRowModel } from "@tanstack/react-table";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+import TaskFilters from "./TaskFilters";
+import TaskCounters from "./TaskCounters";
+import TaskAddForm from "./TaskAddForm";
+import TaskTableView from "./TaskTableView";
+import TaskPagination from "./TaskPagination";
 
 const TaskTable = () => {
   const [tasks, setTasks] = useState([]);
+  const [globalFilter, setGlobalFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  const [editingField, setEditingField] = useState(null);
+  const [newTask, setNewTask] = useState({ title: "", description: "" });
+  const [isAddingTask, setIsAddingTask] = useState(false);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
-  // Fetch initial data
+  // Fetch tasks and map completed status to custom status
   useEffect(() => {
     fetch("https://jsonplaceholder.typicode.com/todos")
-      .then((response) => response.json())
+      .then((res) => res.json())
       .then((data) => {
-        const formattedTasks = data.slice(0, 20).map((task) => ({
-          id: task.id,
-          title: task.title,
-          description: "", // Default description
-          status: task.completed ? "Done" : "To Do",
-        }));
+        const formattedTasks = data.slice(0, 20).map((task) => {
+          // Mapping completed status to custom status
+          let status;
+          if (task.completed) {
+            status = "Done";
+          } else {
+            // You could add more conditions if needed
+            status = "To Do";
+          }
+
+          return {
+            id: task.id,
+            title: task.title,
+            description: task.description || "No description",
+            status: status,
+            originalCompleted: task.completed
+          };
+        });
         setTasks(formattedTasks);
       });
   }, []);
 
-  // Columns definition
-  const columns = [
-    { title: "Task ID", field: "id", width: 100 },
-    { title: "Title", field: "title", editor: "input" },
-    { title: "Description", field: "description", editor: "textarea" },
-    {
-      title: "Status",
-      field: "status",
-      editor: "select",
-      editorParams: { values: ["To Do", "In Progress", "Done"] },
-    },
-    {
-      title: "Actions",
-      field: "actions",
-      width: 200,
-      align: "center",
-      formatter: (cell) => {
-        const task = cell.getRow().getData();
-        return `
-          <button class=" bg-green-600 px-4 py-1 rounded text-white mx-1" data-action="edit" data-id="${task.id}">Edit</button>
-          <button class=" bg-red-600 px-4 py-1 rounded text-white " data-action="delete" data-id="${task.id}">Delete</button>
-        `;
-      },
-      cellClick: (e, cell) => {
-        const actionType = e.target.getAttribute("data-action");
-        const taskId = parseInt(e.target.getAttribute("data-id"));
+ 
 
-        if (actionType === "edit") {
-          handleEditTask(taskId);
-        } else if (actionType === "delete") {
-          handleDeleteTask(taskId);
-        }
-      },
-    },
-  ];
 
-  // Handle Add Task
-  const handleAddTask = () => {
-    const newTask = {
-      id: tasks.length + 1,
-      title: "New Task",
-      description: "Task description",
-      status: "To Do",
-    };
-    setTasks([...tasks, newTask]);
+  // Task management functions
+  const handleEdit = (id, field) => {
+    setEditingTaskId(id);
+    setEditingField(field);
   };
 
-  // Handle Edit Task
-  const handleEditTask = (id) => {
-    const editedTasks = tasks.map((task) =>
-      task.id === id
-        ? { ...task, title: prompt("Edit task title:", task.title) || task.title }
-        : task
+  const handleSave = () => {
+    setEditingTaskId(null);
+    setEditingField(null);
+    toast.success("Task edited successfully!");
+  };
+
+  const handleChange = (id, key, value) => {
+    const updatedTasks = tasks.map((task) =>
+      task.id === id ? { ...task, [key]: value } : task
     );
-    setTasks(editedTasks);
+    setTasks(updatedTasks);
   };
 
-  // Handle Delete Task
   const handleDeleteTask = (id) => {
     setTasks(tasks.filter((task) => task.id !== id));
+    toast.error("Task deleted!");
   };
 
-  // Handle Filter Tasks
-  const handleFilterChange = (e) => {
-    setStatusFilter(e.target.value);
+  const handleAddTask = () => {
+    if (newTask.title && newTask.description) {
+      const newTaskObj = {
+        id: tasks.length + 1,
+        title: newTask.title,
+        description: newTask.description,
+        status: "To Do", // Default status for new tasks
+        originalCompleted: false
+      };
+      setTasks([...tasks, newTaskObj]);
+      setNewTask({ title: "", description: "" });
+      setIsAddingTask(false);
+      toast.success("Task added successfully!");
+    }
   };
 
-  const filteredTasks = tasks.filter((task) =>
-    statusFilter ? task.status === statusFilter : true
+  // Memoized calculations
+  const taskCounters = useMemo(() => {
+    const counters = { "To Do": 0, "In Progress": 0, "Done": 0 };
+    tasks.forEach((task) => {
+      if (counters[task.status] !== undefined) {
+        counters[task.status]++;
+      }
+    });
+    return counters;
+  }, [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      const matchesStatus = !statusFilter || task.status === statusFilter;
+      const matchesGlobalFilter = !globalFilter || 
+        task.title.toLowerCase().includes(globalFilter.toLowerCase()) ||
+        task.description.toLowerCase().includes(globalFilter.toLowerCase());
+      return matchesStatus && matchesGlobalFilter;
+    });
+  }, [tasks, statusFilter, globalFilter]);
+
+  const columns = useMemo(
+    () => [
+      {
+        accessorKey: "id",
+        header: "Task ID",
+        cell: ({ row }) => row.original.id
+      },
+      {
+        accessorKey: "title",
+        header: "Title",
+        cell: ({ row }) => {
+          const isEditing =
+            editingTaskId === row.original.id && editingField === "title";
+          return isEditing ? (
+            <input
+              value={row.original.title}
+              onChange={(e) =>
+                handleChange(row.original.id, "title", e.target.value)
+              }
+              onBlur={handleSave}
+              className="border px-2 py-1 rounded w-full"
+              autoFocus
+            />
+          ) : (
+            <div className="flex items-center">
+              {row.original.title}
+              <button
+                onClick={() => handleEdit(row.original.id, "title")}
+                className="ml-2 text-green-500"
+              >
+                ✎
+              </button>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "description",
+        header: "Description",
+        cell: ({ row }) => {
+          const isEditing =
+            editingTaskId === row.original.id && editingField === "description";
+          return isEditing ? (
+            <input
+              value={row.original.description}
+              onChange={(e) =>
+                handleChange(row.original.id, "description", e.target.value)
+              }
+              onBlur={handleSave}
+              className="border px-2 py-1 rounded w-full"
+              autoFocus
+            />
+          ) : (
+            <div className="flex items-center">
+              {row.original.description}
+              <button
+                onClick={() => handleEdit(row.original.id, "description")}
+                className="ml-2 text-green-500"
+              >
+                ✎
+              </button>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => {
+          const isEditing =
+            editingTaskId === row.original.id && editingField === "status";
+          return isEditing ? (
+            <select
+              value={row.original.status}
+              onChange={(e) =>
+                handleChange(row.original.id, "status", e.target.value)
+              }
+              onBlur={handleSave}
+              className="border px-2 py-1 rounded w-full"
+              autoFocus
+            >
+              <option value="To Do">To Do</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Done">Done</option>
+            </select>
+          ) : (
+            <div className="flex items-center">
+              {row.original.status}
+              <button
+                onClick={() => handleEdit(row.original.id, "status")}
+                className="ml-2 text-green-500"
+              >
+                ✎
+              </button>
+            
+            </div>
+          );
+        },
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => (
+          <div className="flex space-x-2">
+            <button
+              onClick={() => handleDeleteTask(row.original.id)}
+              className="bg-red-500 text-white px-2 py-1 rounded"
+            >
+              Delete
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [tasks, editingTaskId, editingField]
   );
 
+  const table = useReactTable({
+    data: filteredTasks,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    state: {
+      pagination,
+    },
+    onPaginationChange: setPagination,
+  });
+
   return (
-    <div className="max-w-7xl mx-auto">
-      <h1 className="text-center text-2xl font-bold my-4">Task List Manager</h1>
+    <div className="max-w-7xl px-5 py-10 mx-auto">
+      <ToastContainer autoClose={1000} />
+      
+     
+      <h1 className="text-center text-2xl font-bold pb-8">Task List Manager</h1>
+      
+      <div className="flex gap-4 mb-4 justify-between items-center">
+        <TaskFilters 
+          globalFilter={globalFilter}
+          setGlobalFilter={setGlobalFilter}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          setIsAddingTask={setIsAddingTask}
+        />
+        <TaskCounters counters={taskCounters} />
+      </div>
 
-      {/* Add Task Button */}
-      <button
-        onClick={handleAddTask}
-        className="bg-blue-500 text-white px-4 py-2 mb-4 rounded"
-      >
-        Add Task
-      </button>
+      {isAddingTask && (
+        <TaskAddForm 
+          newTask={newTask}
+          setNewTask={setNewTask}
+          handleAddTask={handleAddTask}
+          setIsAddingTask={setIsAddingTask}
+        />
+      )}
 
-      {/* Filter Dropdown */}
-      <select
-        onChange={handleFilterChange}
-        className="border px-2 py-1 rounded mb-4"
-      >
-        <option value="">All</option>
-        <option value="To Do">To Do</option>
-        <option value="In Progress">In Progress</option>
-        <option value="Done">Done</option>
-      </select>
-
-      {/* Task Table */}
-      <ReactTabulator
-        data={filteredTasks}
-        columns={columns}
-        layout={"fitColumns"}
-        options={{ responsiveLayout: "hide" }}
+      <TaskTableView 
+        table={table}
       />
+
+      <TaskPagination table={table} />
     </div>
   );
 };
