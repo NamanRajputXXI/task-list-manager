@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from "react";
 import { useReactTable, getCoreRowModel, getFilteredRowModel, getPaginationRowModel } from "@tanstack/react-table";
 import { ToastContainer, toast } from "react-toastify";
@@ -49,6 +50,9 @@ const TaskTable = () => {
       });
   }, []);
 
+ 
+
+
   // Task management functions
   const handleEdit = (id, field) => {
     setEditingTaskId(id);
@@ -68,18 +72,12 @@ const TaskTable = () => {
     setTasks(updatedTasks);
   };
 
+
   const handleKeyDown = (e, id, key) => {
-    // Check if the key pressed is Enter
     if (e.key === 'Enter') {
-      // Blur the input to trigger save
       e.target.blur();
-      
-      // Optional: You can add additional logic here if needed
-      
-      
     }
   };
-
   const handleDeleteTask = (id) => {
     setTasks(tasks.filter((task) => task.id !== id));
     toast.error("Task deleted!");
@@ -166,7 +164,7 @@ const TaskTable = () => {
           const isEditing =
             editingTaskId === row.original.id && editingField === "description";
           return isEditing ? (
-            <textarea
+            <input
               value={row.original.description}
               onChange={(e) =>
                 handleChange(row.original.id, "description", e.target.value)
@@ -219,6 +217,7 @@ const TaskTable = () => {
               >
                 ✎
               </button>
+            
             </div>
           );
         },
@@ -241,6 +240,7 @@ const TaskTable = () => {
     [tasks, editingTaskId, editingField]
   );
 
+  
   const table = useReactTable({
     data: filteredTasks,
     columns,
@@ -254,38 +254,43 @@ const TaskTable = () => {
   });
 
   return (
-    <div className="max-w-7xl px-5 py-10 mx-auto">
-      <ToastContainer autoClose={1000} />
-      
-      <h1 className="text-center text-2xl font-bold pb-8">Task List Manager</h1>
-      
-      <div className="flex gap-4 mb-4 justify-between items-center">
-        <TaskFilters 
-          globalFilter={globalFilter}
-          setGlobalFilter={setGlobalFilter}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          setIsAddingTask={setIsAddingTask}
-        />
-        <TaskCounters counters={taskCounters} />
-      </div>
-
-      {isAddingTask && (
-        <TaskAddForm 
-          newTask={newTask}
-          setNewTask={setNewTask}
-          handleAddTask={handleAddTask}
-          setIsAddingTask={setIsAddingTask}
-        />
-      )}
-
-      <TaskTableView 
-        table={table}
+    <div className="max-w-7xl px-4 py-6 mx-auto sm:px-6 lg:px-8">
+    <ToastContainer autoClose={1000} />
+    
+    <h1 className="text-center text-xl md:text-2xl font-bold pb-4 md:pb-8">
+      Task List Manager
+    </h1>
+    
+    <div className="flex flex-col md:flex-row gap-4 mb-4 justify-between items-center space-y-4 md:space-y-0">
+      <TaskFilters 
+        globalFilter={globalFilter}
+        setGlobalFilter={setGlobalFilter}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        setIsAddingTask={setIsAddingTask}
+        className="w-full md:w-auto"
       />
-
-      <TaskPagination table={table} />
+      <TaskCounters counters={taskCounters} />
     </div>
+
+    {isAddingTask && (
+      <TaskAddForm 
+        newTask={newTask}
+        setNewTask={setNewTask}
+        handleAddTask={handleAddTask}
+        setIsAddingTask={setIsAddingTask}
+      />
+    )}
+
+    <TaskTableView 
+      table={table}
+    />
+
+    <TaskPagination table={table} />
+  </div>
+
   );
 };
 
 export default TaskTable;
+
