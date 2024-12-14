@@ -1,0 +1,20 @@
+1. How did you handle inline editing in the table?
+Ans - For Identify Row or feild i used a state variable to track the specific row has to be edited and editingFeild state for column, then I checked if the current row and field matched the editingTaskId and editingField. If yes,then I showed an input field where users could edit the value; otherwise, I displayed the normal text and add function by pressing enter the field will edit and add obBlur also so that after click outside also it save.
+
+
+2. Explain how you fetched and processed the data from the dummy API.
+Ans - I used the fetch API inside a useEffect hook to retrieve data from the dummy API.
+
+
+3. What approach did you use to filter tasks based on status?
+Ans - To filter tasks based on status, I use the statusFilter state, which is updated to a dropdown. The tasks are filtered in the filteredTasks memoized function, where each task's status is compared against the statusFilter value. This ensures only tasks with matching status are displayed.
+I used a filtering function to filter tasks based on their status. When a filter option ("Done", "To Do" or ) was selected, I applied the filter method on the tasks array to show the matching tasks.
+
+
+
+4. How did you manage the state of tasks when adding or editing them?
+Ans -  managed the state of tasks by using React's useState hook. When adding or editing tasks, I updated the state using setTasks to reflect changes in the task list. For editing, I identified the task by its ID and modified its properties in the state array.
+
+
+5. What challenges did you face during development, and how did you overcome them?
+Ans Initially i faced the challange on the using of the Tabulator.js  library with react it has less customization with styling , So i have option to choose the other library similar to that so i switched to the react-table library it provide more custom thing and i took some online help to work on this library. 
