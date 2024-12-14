@@ -234,6 +234,17 @@ const TaskTable = () => {
     [tasks, editingTaskId, editingField]
   );
 
+  // const table = useReactTable({
+  //   data: filteredTasks,
+  //   columns,
+  //   getCoreRowModel: getCoreRowModel(),
+  //   getFilteredRowModel: getFilteredRowModel(),
+  //   getPaginationRowModel: getPaginationRowModel(),
+  //   state: {
+  //     pagination,
+  //   },
+  //   onPaginationChange: setPagination,
+  // });
   const table = useReactTable({
     data: filteredTasks,
     columns,

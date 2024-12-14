@@ -5,7 +5,7 @@ const TaskPagination = ({ table }) => {
     <div className="mt-4 flex justify-between items-center">
       <div className="flex items-center space-x-2">
         <button
-          onClick={() => table.firstPage()}
+          onClick={() => table.setPageIndex(0)}
           disabled={!table.getCanPreviousPage()}
           className="px-3 py-1 border rounded disabled:opacity-50"
         >
@@ -26,7 +26,7 @@ const TaskPagination = ({ table }) => {
           Next
         </button>
         <button
-          onClick={() => table.lastPage()}
+          onClick={() => table.setPageIndex(table.getPageCount() - 1)}
           disabled={!table.getCanNextPage()}
           className="px-3 py-1 border rounded disabled:opacity-50"
         >
